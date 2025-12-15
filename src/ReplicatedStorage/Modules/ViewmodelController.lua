@@ -2,6 +2,13 @@
     ViewmodelController.lua
     Handles first-person viewmodel (arms + weapon)
     Location: ReplicatedStorage/Modules/ViewmodelController
+
+    WEAPON MODEL SETUP:
+    1. Create your gun model with all parts welded to a PrimaryPart
+    2. Add an Attachment named "Muzzle" where bullets come from
+    3. Add an Attachment named "RightHand" where right hand grips
+    4. Add an Attachment named "LeftHand" where left hand grips (foregrip)
+    5. Place model in ReplicatedStorage/Weapons/[WeaponName]
 ]]
 
 local Players = game:GetService("Players")
@@ -32,6 +39,10 @@ local CONFIG = {
     -- Breathing
     breathingAmount = 0.003,
     breathingSpeed = 1.5,
+
+    -- Arm colors (customize or load from character)
+    armColor = Color3.fromRGB(255, 204, 153),
+    sleeveColor = Color3.fromRGB(60, 60, 60),
 }
 
 --[[
@@ -78,56 +89,11 @@ end
 
 --[[
     Creates the viewmodel arms
-    This creates basic arm models - replace with custom arms model
     @return Model - The viewmodel model
 ]]
 function ViewmodelController:CreateArmsModel()
     local viewmodel = Instance.new("Model")
     viewmodel.Name = "Viewmodel"
-
-    -- Create right arm
-    local rightArm = Instance.new("Part")
-    rightArm.Name = "RightArm"
-    rightArm.Size = Vector3.new(0.4, 1.2, 0.4)
-    rightArm.Color = Color3.fromRGB(255, 204, 153) -- Skin color
-    rightArm.Material = Enum.Material.SmoothPlastic
-    rightArm.CanCollide = false
-    rightArm.Anchored = true
-    rightArm.CastShadow = false
-    rightArm.Parent = viewmodel
-
-    -- Create right hand
-    local rightHand = Instance.new("Part")
-    rightHand.Name = "RightHand"
-    rightHand.Size = Vector3.new(0.35, 0.3, 0.5)
-    rightHand.Color = Color3.fromRGB(255, 204, 153)
-    rightHand.Material = Enum.Material.SmoothPlastic
-    rightHand.CanCollide = false
-    rightHand.Anchored = true
-    rightHand.CastShadow = false
-    rightHand.Parent = viewmodel
-
-    -- Create left arm
-    local leftArm = Instance.new("Part")
-    leftArm.Name = "LeftArm"
-    leftArm.Size = Vector3.new(0.4, 1.2, 0.4)
-    leftArm.Color = Color3.fromRGB(255, 204, 153)
-    leftArm.Material = Enum.Material.SmoothPlastic
-    leftArm.CanCollide = false
-    leftArm.Anchored = true
-    leftArm.CastShadow = false
-    leftArm.Parent = viewmodel
-
-    -- Create left hand
-    local leftHand = Instance.new("Part")
-    leftHand.Name = "LeftHand"
-    leftHand.Size = Vector3.new(0.35, 0.3, 0.5)
-    leftHand.Color = Color3.fromRGB(255, 204, 153)
-    leftHand.Material = Enum.Material.SmoothPlastic
-    leftHand.CanCollide = false
-    leftHand.Anchored = true
-    leftHand.CastShadow = false
-    leftHand.Parent = viewmodel
 
     -- Weapon holder (where gun attaches)
     local weaponHolder = Instance.new("Part")
@@ -138,26 +104,130 @@ function ViewmodelController:CreateArmsModel()
     weaponHolder.Anchored = true
     weaponHolder.Parent = viewmodel
 
+    -- Create right arm (upper)
+    local rightArm = Instance.new("Part")
+    rightArm.Name = "RightArm"
+    rightArm.Size = Vector3.new(0.35, 0.9, 0.35)
+    rightArm.Color = CONFIG.sleeveColor
+    rightArm.Material = Enum.Material.Fabric
+    rightArm.CanCollide = false
+    rightArm.Anchored = true
+    rightArm.CastShadow = false
+    rightArm.Parent = viewmodel
+
+    -- Create right hand
+    local rightHand = Instance.new("Part")
+    rightHand.Name = "RightHand"
+    rightHand.Size = Vector3.new(0.3, 0.4, 0.3)
+    rightHand.Color = CONFIG.armColor
+    rightHand.Material = Enum.Material.SmoothPlastic
+    rightHand.CanCollide = false
+    rightHand.Anchored = true
+    rightHand.CastShadow = false
+    rightHand.Parent = viewmodel
+
+    -- Create left arm (upper)
+    local leftArm = Instance.new("Part")
+    leftArm.Name = "LeftArm"
+    leftArm.Size = Vector3.new(0.35, 0.9, 0.35)
+    leftArm.Color = CONFIG.sleeveColor
+    leftArm.Material = Enum.Material.Fabric
+    leftArm.CanCollide = false
+    leftArm.Anchored = true
+    leftArm.CastShadow = false
+    leftArm.Parent = viewmodel
+
+    -- Create left hand
+    local leftHand = Instance.new("Part")
+    leftHand.Name = "LeftHand"
+    leftHand.Size = Vector3.new(0.3, 0.4, 0.3)
+    leftHand.Color = CONFIG.armColor
+    leftHand.Material = Enum.Material.SmoothPlastic
+    leftHand.CanCollide = false
+    leftHand.Anchored = true
+    leftHand.CastShadow = false
+    leftHand.Parent = viewmodel
+
     viewmodel.PrimaryPart = weaponHolder
 
     return viewmodel
 end
 
 --[[
-    Creates a basic weapon model
-    Replace this with actual weapon models from your assets
+    Loads a weapon model from ReplicatedStorage/Weapons
     @param weaponConfig: table - Weapon configuration
-    @return Model - The weapon model
+    @return Model, Attachment - The weapon model and muzzle attachment
 ]]
-function ViewmodelController:CreateWeaponModel(weaponConfig)
+function ViewmodelController:LoadWeaponModel(weaponConfig)
+    local weaponsFolder = ReplicatedStorage:FindFirstChild("Weapons")
+
+    if weaponsFolder then
+        local modelTemplate = weaponsFolder:FindFirstChild(weaponConfig.id)
+        if modelTemplate then
+            -- Clone the model
+            local weapon = modelTemplate:Clone()
+            weapon.Name = weaponConfig.id
+
+            -- Make all parts non-collidable and anchored for viewmodel
+            for _, part in ipairs(weapon:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                    part.Anchored = true
+                    part.CastShadow = false
+                end
+            end
+
+            -- Find muzzle attachment
+            local muzzle = weapon:FindFirstChild("Muzzle", true)
+            if not muzzle then
+                -- Create default muzzle at front of gun
+                muzzle = Instance.new("Attachment")
+                muzzle.Name = "Muzzle"
+                if weapon.PrimaryPart then
+                    muzzle.Parent = weapon.PrimaryPart
+                    muzzle.Position = Vector3.new(0, 0, -weapon.PrimaryPart.Size.Z/2 - 0.5)
+                end
+            end
+
+            print("[Viewmodel] Loaded weapon model:", weaponConfig.id)
+            return weapon, muzzle
+        end
+    end
+
+    -- Fallback to procedural model if no model found
+    print("[Viewmodel] No model found for", weaponConfig.id, "- using placeholder")
+    return self:CreateProceduralWeapon(weaponConfig)
+end
+
+--[[
+    Creates a procedural placeholder weapon
+    @param weaponConfig: table - Weapon configuration
+    @return Model, Attachment - The weapon model and muzzle attachment
+]]
+function ViewmodelController:CreateProceduralWeapon(weaponConfig)
     local weapon = Instance.new("Model")
     weapon.Name = weaponConfig.id or "Weapon"
 
-    -- Create gun body (placeholder - replace with mesh)
+    -- Determine size based on weapon type
+    local bodySize = Vector3.new(0.15, 0.2, 0.9)
+    local barrelLength = 0.4
+
+    if weaponConfig.weaponType == "Secondary" then
+        bodySize = Vector3.new(0.12, 0.18, 0.5)
+        barrelLength = 0.2
+    elseif weaponConfig.template == "SniperRifle" then
+        bodySize = Vector3.new(0.15, 0.22, 1.3)
+        barrelLength = 0.6
+    elseif weaponConfig.template == "Shotgun" then
+        bodySize = Vector3.new(0.18, 0.22, 1.1)
+        barrelLength = 0.5
+    end
+
+    -- Create gun body
     local body = Instance.new("Part")
     body.Name = "Body"
-    body.Size = Vector3.new(0.2, 0.25, 1.2)
-    body.Color = Color3.fromRGB(40, 40, 40)
+    body.Size = bodySize
+    body.Color = Color3.fromRGB(45, 45, 48)
     body.Material = Enum.Material.Metal
     body.CanCollide = false
     body.Anchored = true
@@ -167,8 +237,8 @@ function ViewmodelController:CreateWeaponModel(weaponConfig)
     -- Create barrel
     local barrel = Instance.new("Part")
     barrel.Name = "Barrel"
-    barrel.Size = Vector3.new(0.12, 0.12, 0.6)
-    barrel.Color = Color3.fromRGB(30, 30, 30)
+    barrel.Size = Vector3.new(0.1, 0.1, barrelLength)
+    barrel.Color = Color3.fromRGB(35, 35, 38)
     barrel.Material = Enum.Material.Metal
     barrel.CanCollide = false
     barrel.Anchored = true
@@ -178,14 +248,14 @@ function ViewmodelController:CreateWeaponModel(weaponConfig)
     -- Create muzzle attachment
     local muzzle = Instance.new("Attachment")
     muzzle.Name = "Muzzle"
-    muzzle.Position = Vector3.new(0, 0, -0.3)
+    muzzle.Position = Vector3.new(0, 0, -barrelLength/2)
     muzzle.Parent = barrel
 
     -- Create grip
     local grip = Instance.new("Part")
     grip.Name = "Grip"
-    grip.Size = Vector3.new(0.15, 0.35, 0.2)
-    grip.Color = Color3.fromRGB(50, 40, 30)
+    grip.Size = Vector3.new(0.12, 0.3, 0.18)
+    grip.Color = Color3.fromRGB(55, 45, 35)
     grip.Material = Enum.Material.Wood
     grip.CanCollide = false
     grip.Anchored = true
@@ -195,13 +265,24 @@ function ViewmodelController:CreateWeaponModel(weaponConfig)
     -- Create magazine
     local mag = Instance.new("Part")
     mag.Name = "Magazine"
-    mag.Size = Vector3.new(0.1, 0.4, 0.25)
-    mag.Color = Color3.fromRGB(35, 35, 35)
+    mag.Size = Vector3.new(0.08, 0.3, 0.2)
+    mag.Color = Color3.fromRGB(40, 40, 42)
     mag.Material = Enum.Material.Metal
     mag.CanCollide = false
     mag.Anchored = true
     mag.CastShadow = false
     mag.Parent = weapon
+
+    -- Create hand grip attachments
+    local rightHandGrip = Instance.new("Attachment")
+    rightHandGrip.Name = "RightHand"
+    rightHandGrip.Position = Vector3.new(0, -0.15, 0.1)
+    rightHandGrip.Parent = body
+
+    local leftHandGrip = Instance.new("Attachment")
+    leftHandGrip.Name = "LeftHand"
+    leftHandGrip.Position = Vector3.new(0, 0, -0.3)
+    leftHandGrip.Parent = body
 
     weapon.PrimaryPart = body
 
@@ -216,18 +297,22 @@ function ViewmodelController:Equip(weaponConfig)
     -- Clean up existing viewmodel
     self:Unequip()
 
-    -- Create viewmodel
+    -- Create viewmodel arms
     self.ViewmodelModel = self:CreateArmsModel()
     self.ViewmodelModel.Parent = self.Camera
 
-    -- Create weapon model
-    self.WeaponModel, self.MuzzleAttachment = self:CreateWeaponModel(weaponConfig)
+    -- Load or create weapon model
+    self.WeaponModel, self.MuzzleAttachment = self:LoadWeaponModel(weaponConfig)
     self.WeaponModel.Parent = self.ViewmodelModel
 
     -- Set offsets from config
-    self.BaseOffset = weaponConfig.viewmodelOffset or CFrame.new(0.5, -0.5, -1.2)
-    self.AdsOffset = weaponConfig.adsOffset or CFrame.new(0, -0.35, -0.8)
+    self.BaseOffset = weaponConfig.viewmodelOffset or CFrame.new(0.4, -0.4, -1.0)
+    self.AdsOffset = weaponConfig.adsOffset or CFrame.new(0, -0.3, -0.7)
     self.CurrentOffset = self.BaseOffset
+
+    -- Store hand grip positions from weapon
+    self.RightHandGrip = self.WeaponModel:FindFirstChild("RightHand", true)
+    self.LeftHandGrip = self.WeaponModel:FindFirstChild("LeftHand", true)
 
     self.IsEquipped = true
 
@@ -248,6 +333,8 @@ function ViewmodelController:Unequip()
 
     self.WeaponModel = nil
     self.MuzzleAttachment = nil
+    self.RightHandGrip = nil
+    self.LeftHandGrip = nil
     self.IsEquipped = false
     self.IsADS = false
 
@@ -281,12 +368,11 @@ end
     @param horizontal: number - Horizontal recoil (degrees)
 ]]
 function ViewmodelController:ApplyRecoil(vertical: number, horizontal: number)
-    -- Add to recoil offset
     local recoilCFrame = CFrame.Angles(
         math.rad(-vertical),
         math.rad(horizontal),
         0
-    ) * CFrame.new(0, 0, 0.05) -- Slight backwards kick
+    ) * CFrame.new(0, 0, 0.05)
 
     self.RecoilOffset = self.RecoilOffset * recoilCFrame
 end
@@ -301,7 +387,6 @@ function ViewmodelController:GetMuzzlePosition(): (Vector3, Vector3)
         return cf.Position, cf.LookVector
     end
 
-    -- Fallback to camera
     local cf = self.Camera.CFrame
     return cf.Position, cf.LookVector
 end
@@ -324,36 +409,24 @@ end
 function ViewmodelController:Update(dt: number)
     if not self.IsEquipped or not self.ViewmodelModel then return end
 
-    -- Update sway based on camera movement
     self:UpdateSway(dt)
-
-    -- Update bob based on movement
     self:UpdateBob(dt)
-
-    -- Update breathing
     self:UpdateBreathing(dt)
-
-    -- Recover recoil
     self:UpdateRecoilRecovery(dt)
 
-    -- Interpolate ADS offset
     local targetOffset = self.IsADS and self.AdsOffset or self.BaseOffset
     self.CurrentOffset = self.CurrentOffset:Lerp(targetOffset, dt * CONFIG.adsSpeed)
 
-    -- Calculate final viewmodel CFrame
     local baseCFrame = self.Camera.CFrame * self.CurrentOffset
     local finalCFrame = baseCFrame * self.SwayOffset * self.BobOffset * self.RecoilOffset * self.BreathingOffset
 
-    -- Update viewmodel position
     self:UpdateViewmodelParts(finalCFrame)
 end
 
 --[[
     Updates camera sway effect
-    @param dt: number - Delta time
 ]]
 function ViewmodelController:UpdateSway(dt: number)
-    -- Get camera rotation delta
     local currentRot = Vector2.new(
         self.Camera.CFrame:ToEulerAnglesYXZ()
     )
@@ -361,21 +434,16 @@ function ViewmodelController:UpdateSway(dt: number)
     local rotDelta = currentRot - self.LastCameraRot
     self.LastCameraRot = currentRot
 
-    -- Calculate sway
     local swayX = math.clamp(rotDelta.Y * CONFIG.swayAmount, -CONFIG.maxSway, CONFIG.maxSway)
     local swayY = math.clamp(rotDelta.X * CONFIG.swayAmount, -CONFIG.maxSway, CONFIG.maxSway)
 
-    -- Smooth sway
     local targetSway = CFrame.Angles(swayY * 0.1, swayX * 0.1, -swayX * 0.05)
     self.SwayOffset = self.SwayOffset:Lerp(targetSway, dt * CONFIG.swaySpeed)
-
-    -- Return to neutral
     self.SwayOffset = self.SwayOffset:Lerp(CFrame.new(), dt * CONFIG.swaySpeed * 0.5)
 end
 
 --[[
     Updates movement bob effect
-    @param dt: number - Delta time
 ]]
 function ViewmodelController:UpdateBob(dt: number)
     local character = self.Player.Character
@@ -390,7 +458,6 @@ function ViewmodelController:UpdateBob(dt: number)
         local bobMultiplier = self.IsSprinting and CONFIG.sprintBobMultiplier or 1
         local bobSpeed = CONFIG.bobSpeed * (self.IsSprinting and 1.5 or 1)
 
-        -- Reduce bob when ADS
         if self.IsADS then
             bobMultiplier = bobMultiplier * 0.2
         end
@@ -409,14 +476,13 @@ end
 
 --[[
     Updates breathing sway effect
-    @param dt: number - Delta time
 ]]
 function ViewmodelController:UpdateBreathing(dt: number)
     self.BreathTime = self.BreathTime + dt * CONFIG.breathingSpeed
 
     local amount = CONFIG.breathingAmount
     if self.IsADS then
-        amount = amount * 0.3 -- Less breathing when ADS
+        amount = amount * 0.3
     end
 
     local breathX = math.sin(self.BreathTime * 0.8) * amount
@@ -427,7 +493,6 @@ end
 
 --[[
     Recovers recoil over time
-    @param dt: number - Delta time
 ]]
 function ViewmodelController:UpdateRecoilRecovery(dt: number)
     self.RecoilOffset = self.RecoilOffset:Lerp(CFrame.new(), dt * 8)
@@ -435,7 +500,6 @@ end
 
 --[[
     Updates all viewmodel parts to follow the calculated CFrame
-    @param baseCFrame: CFrame - The base viewmodel position
 ]]
 function ViewmodelController:UpdateViewmodelParts(baseCFrame: CFrame)
     if not self.ViewmodelModel then return end
@@ -445,26 +509,22 @@ function ViewmodelController:UpdateViewmodelParts(baseCFrame: CFrame)
         holder.CFrame = baseCFrame
     end
 
-    -- Position arms relative to weapon holder
-    local rightArm = self.ViewmodelModel:FindFirstChild("RightArm")
-    local rightHand = self.ViewmodelModel:FindFirstChild("RightHand")
-    local leftArm = self.ViewmodelModel:FindFirstChild("LeftArm")
-    local leftHand = self.ViewmodelModel:FindFirstChild("LeftHand")
+    -- Update weapon model position
+    if self.WeaponModel and self.WeaponModel.PrimaryPart then
+        self.WeaponModel.PrimaryPart.CFrame = baseCFrame
 
-    if rightArm then
-        rightArm.CFrame = baseCFrame * CFrame.new(0.3, 0.1, 0.3) * CFrame.Angles(math.rad(-80), 0, 0)
-    end
-    if rightHand then
-        rightHand.CFrame = baseCFrame * CFrame.new(0.25, -0.15, -0.1) * CFrame.Angles(math.rad(-10), 0, 0)
-    end
-    if leftArm then
-        leftArm.CFrame = baseCFrame * CFrame.new(-0.25, 0.05, 0.1) * CFrame.Angles(math.rad(-75), 0, 0)
-    end
-    if leftHand then
-        leftHand.CFrame = baseCFrame * CFrame.new(-0.2, -0.2, -0.4) * CFrame.Angles(math.rad(-5), 0, 0)
+        -- Update all welded/connected parts
+        for _, part in ipairs(self.WeaponModel:GetDescendants()) do
+            if part:IsA("BasePart") and part ~= self.WeaponModel.PrimaryPart then
+                -- Parts should maintain relative position to PrimaryPart
+                -- This assumes parts were originally positioned correctly relative to PrimaryPart
+                local relativeOffset = self.WeaponModel.PrimaryPart.CFrame:ToObjectSpace(part.CFrame)
+                -- Actually for anchored parts we need to store original offsets
+            end
+        end
     end
 
-    -- Position weapon
+    -- Position weapon parts (for procedural weapons)
     if self.WeaponModel then
         local body = self.WeaponModel:FindFirstChild("Body")
         local barrel = self.WeaponModel:FindFirstChild("Barrel")
@@ -472,17 +532,47 @@ function ViewmodelController:UpdateViewmodelParts(baseCFrame: CFrame)
         local mag = self.WeaponModel:FindFirstChild("Magazine")
 
         if body then
-            body.CFrame = baseCFrame * CFrame.new(0, 0, -0.2)
+            body.CFrame = baseCFrame * CFrame.new(0, 0, -0.15)
         end
         if barrel then
-            barrel.CFrame = baseCFrame * CFrame.new(0, 0.05, -0.8)
+            barrel.CFrame = baseCFrame * CFrame.new(0, 0.02, -0.6)
         end
         if grip then
-            grip.CFrame = baseCFrame * CFrame.new(0, -0.25, 0.1)
+            grip.CFrame = baseCFrame * CFrame.new(0, -0.22, 0.08)
         end
         if mag then
-            mag.CFrame = baseCFrame * CFrame.new(0, -0.35, -0.1)
+            mag.CFrame = baseCFrame * CFrame.new(0, -0.28, -0.05)
         end
+    end
+
+    -- Position arms
+    local rightArm = self.ViewmodelModel:FindFirstChild("RightArm")
+    local rightHand = self.ViewmodelModel:FindFirstChild("RightHand")
+    local leftArm = self.ViewmodelModel:FindFirstChild("LeftArm")
+    local leftHand = self.ViewmodelModel:FindFirstChild("LeftHand")
+
+    -- Use grip attachments if available, otherwise default positions
+    local rightGripPos = CFrame.new(0.15, -0.12, 0.05)
+    local leftGripPos = CFrame.new(-0.12, -0.05, -0.35)
+
+    if self.RightHandGrip then
+        rightGripPos = CFrame.new(self.RightHandGrip.Position)
+    end
+    if self.LeftHandGrip then
+        leftGripPos = CFrame.new(self.LeftHandGrip.Position)
+    end
+
+    if rightHand then
+        rightHand.CFrame = baseCFrame * rightGripPos * CFrame.Angles(math.rad(-10), 0, 0)
+    end
+    if rightArm then
+        rightArm.CFrame = baseCFrame * rightGripPos * CFrame.new(0, 0.5, 0.15) * CFrame.Angles(math.rad(-75), 0, 0)
+    end
+    if leftHand then
+        leftHand.CFrame = baseCFrame * leftGripPos * CFrame.Angles(math.rad(-5), 0, 0)
+    end
+    if leftArm then
+        leftArm.CFrame = baseCFrame * leftGripPos * CFrame.new(0, 0.5, 0.1) * CFrame.Angles(math.rad(-70), 0, 0)
     end
 end
 

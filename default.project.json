@@ -14,6 +14,11 @@
       "Modules": {
         "$className": "Folder",
         "$path": "src/ReplicatedStorage/Modules"
+      },
+
+      "Weapons": {
+        "$className": "Folder",
+        "$path": "src/ReplicatedStorage/Weapons"
       }
     },
 

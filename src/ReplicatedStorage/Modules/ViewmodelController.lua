@@ -383,7 +383,13 @@ end
 ]]
 function ViewmodelController:GetMuzzlePosition(): (Vector3, Vector3)
     if self.MuzzleAttachment then
-        local cf = self.MuzzleAttachment.WorldCFrame
+        local cf
+        -- Handle both Attachments (WorldCFrame) and Parts (CFrame)
+        if self.MuzzleAttachment:IsA("Attachment") then
+            cf = self.MuzzleAttachment.WorldCFrame
+        else
+            cf = self.MuzzleAttachment.CFrame
+        end
         return cf.Position, cf.LookVector
     end
 

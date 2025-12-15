@@ -1,0 +1,48 @@
+{
+  "name": "ExtractionShooter",
+  "tree": {
+    "$className": "DataModel",
+
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+
+      "Config": {
+        "$className": "Folder",
+        "$path": "src/ReplicatedStorage/Config"
+      },
+
+      "Modules": {
+        "$className": "Folder",
+        "$path": "src/ReplicatedStorage/Modules"
+      }
+    },
+
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "$path": "src/ServerScriptService"
+    },
+
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "$path": "src/StarterPlayerScripts"
+      }
+    },
+
+    "ServerStorage": {
+      "$className": "ServerStorage",
+
+      "GameData": {
+        "$className": "Folder",
+        "$path": "src/ServerStorage/GameData"
+      },
+
+      "Modules": {
+        "$className": "Folder",
+        "$path": "src/ServerStorage/Modules"
+      }
+    }
+  }
+}

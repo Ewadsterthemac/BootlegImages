@@ -309,9 +309,22 @@ function ViewmodelController:Equip(weaponConfig)
     -- Clean up existing viewmodel
     self:Unequip()
 
-    -- Create viewmodel arms
-    self.ViewmodelModel = self:CreateArmsModel()
-    self.ViewmodelModel.Parent = self.Camera
+    -- Check if real weapon model exists
+    local weaponsFolder = ReplicatedStorage:FindFirstChild("Weapons")
+    local hasRealModel = weaponsFolder and weaponsFolder:FindFirstChild(weaponConfig.id)
+
+    if hasRealModel then
+        -- For real weapon models, create simple container (no procedural arms)
+        self.ViewmodelModel = Instance.new("Model")
+        self.ViewmodelModel.Name = "Viewmodel"
+        self.ViewmodelModel.Parent = self.Camera
+        self.UseRealModel = true
+    else
+        -- For procedural weapons, create viewmodel with arms
+        self.ViewmodelModel = self:CreateArmsModel()
+        self.ViewmodelModel.Parent = self.Camera
+        self.UseRealModel = false
+    end
 
     -- Load or create weapon model
     self.WeaponModel, self.MuzzleAttachment = self:LoadWeaponModel(weaponConfig)
@@ -356,6 +369,7 @@ function ViewmodelController:Unequip()
     self.MuzzleAttachment = nil
     self.WeaponPartOffsets = {}
     self.GunOffset = nil
+    self.UseRealModel = false
     self.RightArmOffset = nil
     self.LeftArmOffset = nil
     self.SprintRightArm = nil
@@ -578,38 +592,30 @@ function ViewmodelController:UpdateViewmodelParts(baseCFrame: CFrame)
         end
     end
 
-    -- Position arms
+    -- Skip arm positioning for real weapon models (they don't have procedural arms)
+    if self.UseRealModel then
+        return
+    end
+
+    -- Position arms (for procedural weapons only)
     local rightArm = self.ViewmodelModel:FindFirstChild("RightArm")
     local rightHand = self.ViewmodelModel:FindFirstChild("RightHand")
     local leftArm = self.ViewmodelModel:FindFirstChild("LeftArm")
     local leftHand = self.ViewmodelModel:FindFirstChild("LeftHand")
 
-    -- Use config arm offsets if available (for ACS-style animations)
-    local rightArmCF, leftArmCF
+    -- Use grip attachments if available, otherwise default positions
+    local rightGripPos = CFrame.new(0.15, -0.12, 0.05)
+    local leftGripPos = CFrame.new(-0.12, -0.05, -0.35)
 
-    if self.IsSprinting and self.SprintRightArm and self.SprintLeftArm then
-        -- Sprint pose
-        rightArmCF = self.SprintRightArm
-        leftArmCF = self.SprintLeftArm
-    elseif self.RightArmOffset and self.LeftArmOffset then
-        -- Config-defined arm positions
-        rightArmCF = self.RightArmOffset
-        leftArmCF = self.LeftArmOffset
-    else
-        -- Fallback: Use grip attachments if available, otherwise default positions
-        local rightGripPos = CFrame.new(0.15, -0.12, 0.05)
-        local leftGripPos = CFrame.new(-0.12, -0.05, -0.35)
-
-        if self.RightHandGrip then
-            rightGripPos = CFrame.new(self.RightHandGrip.Position)
-        end
-        if self.LeftHandGrip then
-            leftGripPos = CFrame.new(self.LeftHandGrip.Position)
-        end
-
-        rightArmCF = rightGripPos * CFrame.Angles(math.rad(-10), 0, 0)
-        leftArmCF = leftGripPos * CFrame.Angles(math.rad(-5), 0, 0)
+    if self.RightHandGrip then
+        rightGripPos = CFrame.new(self.RightHandGrip.Position)
     end
+    if self.LeftHandGrip then
+        leftGripPos = CFrame.new(self.LeftHandGrip.Position)
+    end
+
+    local rightArmCF = rightGripPos * CFrame.Angles(math.rad(-10), 0, 0)
+    local leftArmCF = leftGripPos * CFrame.Angles(math.rad(-5), 0, 0)
 
     -- Apply arm positions
     if rightHand then

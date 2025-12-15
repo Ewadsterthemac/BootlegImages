@@ -274,20 +274,12 @@ WeaponConfig.Weapons = {
         fireRate = 800,
         magSize = 30,
 
-        -- Viewmodel positioning (from ACS animation data)
-        viewmodelOffset = CFrame.new(0.5, -0.85, -0.75),
-        adsOffset = CFrame.new(0, -0.5, -0.5),
+        -- Viewmodel positioning
+        viewmodelOffset = CFrame.new(0.3, -0.4, -1.0),
+        adsOffset = CFrame.new(0, -0.3, -0.6),
 
-        -- Gun model offset and rotation
-        gunOffset = CFrame.new(0.15, -0.2, 0.85) * CFrame.Angles(math.rad(90), 0, 0),
-
-        -- Arm positions
-        rightArmOffset = CFrame.new(0.05, -0.15, 0.85) * CFrame.Angles(math.rad(90), 0, 0),
-        leftArmOffset = CFrame.new(-0.6, -0.1, -0.2) * CFrame.Angles(math.rad(110), math.rad(15), math.rad(15)),
-
-        -- Sprint animation offset
-        sprintRightArm = CFrame.new(0.75, -0.15, 0) * CFrame.Angles(math.rad(90), math.rad(20), math.rad(-75)),
-        sprintLeftArm = CFrame.new(-1.15, -0.75, 0.4) * CFrame.Angles(math.rad(90), math.rad(20), math.rad(25)),
+        -- Gun model offset (no extra rotation needed if model is oriented correctly)
+        gunOffset = CFrame.new(0, 0, 0),
     },
 
     -- Pistols

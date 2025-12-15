@@ -59,6 +59,7 @@ function ViewmodelController.new()
     self.ViewmodelModel = nil
     self.WeaponModel = nil
     self.MuzzleAttachment = nil
+    self.WeaponPartOffsets = {} -- Stores relative CFrame offsets for each part
 
     -- Offsets
     self.BaseOffset = CFrame.new()
@@ -169,13 +170,24 @@ function ViewmodelController:LoadWeaponModel(weaponConfig)
             weapon.Name = weaponConfig.id
 
             -- Make all parts non-collidable and anchored for viewmodel
+            -- Also store relative offsets from PrimaryPart
+            local partOffsets = {}
+            local primaryPart = weapon.PrimaryPart
+
             for _, part in ipairs(weapon:GetDescendants()) do
                 if part:IsA("BasePart") then
                     part.CanCollide = false
                     part.Anchored = true
                     part.CastShadow = false
+
+                    -- Store offset relative to PrimaryPart
+                    if primaryPart and part ~= primaryPart then
+                        partOffsets[part] = primaryPart.CFrame:ToObjectSpace(part.CFrame)
+                    end
                 end
             end
+
+            self.WeaponPartOffsets = partOffsets
 
             -- Find muzzle attachment
             local muzzle = weapon:FindFirstChild("Muzzle", true)
@@ -333,6 +345,7 @@ function ViewmodelController:Unequip()
 
     self.WeaponModel = nil
     self.MuzzleAttachment = nil
+    self.WeaponPartOffsets = {}
     self.RightHandGrip = nil
     self.LeftHandGrip = nil
     self.IsEquipped = false
@@ -515,17 +528,14 @@ function ViewmodelController:UpdateViewmodelParts(baseCFrame: CFrame)
         holder.CFrame = baseCFrame
     end
 
-    -- Update weapon model position
+    -- Update weapon model position (for real weapon models)
     if self.WeaponModel and self.WeaponModel.PrimaryPart then
         self.WeaponModel.PrimaryPart.CFrame = baseCFrame
 
-        -- Update all welded/connected parts
-        for _, part in ipairs(self.WeaponModel:GetDescendants()) do
-            if part:IsA("BasePart") and part ~= self.WeaponModel.PrimaryPart then
-                -- Parts should maintain relative position to PrimaryPart
-                -- This assumes parts were originally positioned correctly relative to PrimaryPart
-                local relativeOffset = self.WeaponModel.PrimaryPart.CFrame:ToObjectSpace(part.CFrame)
-                -- Actually for anchored parts we need to store original offsets
+        -- Update all parts using stored offsets
+        for part, offset in pairs(self.WeaponPartOffsets) do
+            if part and part.Parent then
+                part.CFrame = baseCFrame * offset
             end
         end
     end

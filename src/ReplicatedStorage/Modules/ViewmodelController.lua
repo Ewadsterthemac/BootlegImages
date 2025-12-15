@@ -105,10 +105,10 @@ function ViewmodelController:CreateArmsModel()
     weaponHolder.Anchored = true
     weaponHolder.Parent = viewmodel
 
-    -- Right hand
+    -- Right hand only (no forearm - cleaner look)
     local rightHand = Instance.new("Part")
     rightHand.Name = "RightHand"
-    rightHand.Size = Vector3.new(0.22, 0.28, 0.22)
+    rightHand.Size = Vector3.new(0.18, 0.25, 0.35) -- Elongated to look like gripping hand
     rightHand.Color = CONFIG.armColor
     rightHand.Material = Enum.Material.SmoothPlastic
     rightHand.CanCollide = false
@@ -116,38 +116,16 @@ function ViewmodelController:CreateArmsModel()
     rightHand.CastShadow = false
     rightHand.Parent = viewmodel
 
-    -- Right arm (forearm)
-    local rightArm = Instance.new("Part")
-    rightArm.Name = "RightArm"
-    rightArm.Size = Vector3.new(0.18, 0.55, 0.18)
-    rightArm.Color = CONFIG.sleeveColor
-    rightArm.Material = Enum.Material.Fabric
-    rightArm.CanCollide = false
-    rightArm.Anchored = true
-    rightArm.CastShadow = false
-    rightArm.Parent = viewmodel
-
-    -- Left hand
+    -- Left hand only
     local leftHand = Instance.new("Part")
     leftHand.Name = "LeftHand"
-    leftHand.Size = Vector3.new(0.22, 0.28, 0.22)
+    leftHand.Size = Vector3.new(0.18, 0.25, 0.35)
     leftHand.Color = CONFIG.armColor
     leftHand.Material = Enum.Material.SmoothPlastic
     leftHand.CanCollide = false
     leftHand.Anchored = true
     leftHand.CastShadow = false
     leftHand.Parent = viewmodel
-
-    -- Left arm (forearm)
-    local leftArm = Instance.new("Part")
-    leftArm.Name = "LeftArm"
-    leftArm.Size = Vector3.new(0.18, 0.55, 0.18)
-    leftArm.Color = CONFIG.sleeveColor
-    leftArm.Material = Enum.Material.Fabric
-    leftArm.CanCollide = false
-    leftArm.Anchored = true
-    leftArm.CastShadow = false
-    leftArm.Parent = viewmodel
 
     viewmodel.PrimaryPart = weaponHolder
 
@@ -583,16 +561,14 @@ function ViewmodelController:UpdateViewmodelParts(baseCFrame: CFrame)
         end
     end
 
-    -- Position arms
-    local rightArm = self.ViewmodelModel:FindFirstChild("RightArm")
+    -- Position hands at grip points
     local rightHand = self.ViewmodelModel:FindFirstChild("RightHand")
-    local leftArm = self.ViewmodelModel:FindFirstChild("LeftArm")
     local leftHand = self.ViewmodelModel:FindFirstChild("LeftHand")
 
-    -- Right hand position: at pistol grip (right side, slightly down and back)
-    local rightHandCF = baseCFrame * CFrame.new(0.15, -0.2, 0.15)
-    -- Left hand position: at foregrip (left side, forward on the gun)
-    local leftHandCF = baseCFrame * CFrame.new(-0.1, -0.15, -0.25)
+    -- Right hand: at pistol grip area
+    local rightHandCF = baseCFrame * CFrame.new(0.12, -0.18, 0.05)
+    -- Left hand: at foregrip area (forward)
+    local leftHandCF = baseCFrame * CFrame.new(-0.08, -0.15, -0.3)
 
     -- Override with grip attachments from weapon if available
     if self.RightHandGrip then
@@ -612,27 +588,15 @@ function ViewmodelController:UpdateViewmodelParts(baseCFrame: CFrame)
         end
     end
 
-    -- Position hands
+    -- Position hands with grip rotation
     if rightHand then
-        rightHand.CFrame = rightHandCF
-    end
-    -- Right arm: positioned below hand, angled to look like forearm going to body
-    if rightArm then
-        -- Arm goes from hand downward toward bottom-right of screen
-        local armPos = rightHandCF * CFrame.new(0.1, -0.35, 0.1)
-        -- Rotate so the arm points diagonally down-right-back (like a real forearm)
-        rightArm.CFrame = armPos * CFrame.Angles(math.rad(-60), math.rad(20), math.rad(15))
+        -- Rotated to look like hand wrapping around grip
+        rightHand.CFrame = rightHandCF * CFrame.Angles(math.rad(-70), 0, math.rad(-10))
     end
 
     if leftHand then
-        leftHand.CFrame = leftHandCF
-    end
-    -- Left arm: positioned below hand, angled to look like forearm going to body
-    if leftArm then
-        -- Arm goes from hand downward toward bottom-left of screen
-        local armPos = leftHandCF * CFrame.new(-0.1, -0.35, 0.1)
-        -- Rotate so the arm points diagonally down-left-back
-        leftArm.CFrame = armPos * CFrame.Angles(math.rad(-60), math.rad(-20), math.rad(-15))
+        -- Rotated to look like hand on foregrip
+        leftHand.CFrame = leftHandCF * CFrame.Angles(math.rad(-75), 0, math.rad(10))
     end
 end
 

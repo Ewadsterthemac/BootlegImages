@@ -616,17 +616,23 @@ function ViewmodelController:UpdateViewmodelParts(baseCFrame: CFrame)
     if rightHand then
         rightHand.CFrame = rightHandCF
     end
-    -- Right arm extends down-right from hand
+    -- Right arm: positioned below hand, angled to look like forearm going to body
     if rightArm then
-        rightArm.CFrame = rightHandCF * CFrame.new(0.15, -0.4, 0.2) * CFrame.Angles(math.rad(25), math.rad(-15), math.rad(-20))
+        -- Arm goes from hand downward toward bottom-right of screen
+        local armPos = rightHandCF * CFrame.new(0.1, -0.35, 0.1)
+        -- Rotate so the arm points diagonally down-right-back (like a real forearm)
+        rightArm.CFrame = armPos * CFrame.Angles(math.rad(-60), math.rad(20), math.rad(15))
     end
 
     if leftHand then
         leftHand.CFrame = leftHandCF
     end
-    -- Left arm extends down-left from hand
+    -- Left arm: positioned below hand, angled to look like forearm going to body
     if leftArm then
-        leftArm.CFrame = leftHandCF * CFrame.new(-0.15, -0.4, 0.15) * CFrame.Angles(math.rad(20), math.rad(15), math.rad(20))
+        -- Arm goes from hand downward toward bottom-left of screen
+        local armPos = leftHandCF * CFrame.new(-0.1, -0.35, 0.1)
+        -- Rotate so the arm points diagonally down-left-back
+        leftArm.CFrame = armPos * CFrame.Angles(math.rad(-60), math.rad(-20), math.rad(-15))
     end
 end
 

@@ -105,21 +105,10 @@ function ViewmodelController:CreateArmsModel()
     weaponHolder.Anchored = true
     weaponHolder.Parent = viewmodel
 
-    -- Create right arm (upper)
-    local rightArm = Instance.new("Part")
-    rightArm.Name = "RightArm"
-    rightArm.Size = Vector3.new(0.35, 0.9, 0.35)
-    rightArm.Color = CONFIG.sleeveColor
-    rightArm.Material = Enum.Material.Fabric
-    rightArm.CanCollide = false
-    rightArm.Anchored = true
-    rightArm.CastShadow = false
-    rightArm.Parent = viewmodel
-
-    -- Create right hand
+    -- Create right hand (small, positioned at grip)
     local rightHand = Instance.new("Part")
     rightHand.Name = "RightHand"
-    rightHand.Size = Vector3.new(0.3, 0.4, 0.3)
+    rightHand.Size = Vector3.new(0.15, 0.2, 0.15)
     rightHand.Color = CONFIG.armColor
     rightHand.Material = Enum.Material.SmoothPlastic
     rightHand.CanCollide = false
@@ -127,27 +116,38 @@ function ViewmodelController:CreateArmsModel()
     rightHand.CastShadow = false
     rightHand.Parent = viewmodel
 
-    -- Create left arm (upper)
-    local leftArm = Instance.new("Part")
-    leftArm.Name = "LeftArm"
-    leftArm.Size = Vector3.new(0.35, 0.9, 0.35)
-    leftArm.Color = CONFIG.sleeveColor
-    leftArm.Material = Enum.Material.Fabric
-    leftArm.CanCollide = false
-    leftArm.Anchored = true
-    leftArm.CastShadow = false
-    leftArm.Parent = viewmodel
+    -- Create right arm (thin, extends down from hand)
+    local rightArm = Instance.new("Part")
+    rightArm.Name = "RightArm"
+    rightArm.Size = Vector3.new(0.12, 0.5, 0.12)
+    rightArm.Color = CONFIG.sleeveColor
+    rightArm.Material = Enum.Material.Fabric
+    rightArm.CanCollide = false
+    rightArm.Anchored = true
+    rightArm.CastShadow = false
+    rightArm.Parent = viewmodel
 
     -- Create left hand
     local leftHand = Instance.new("Part")
     leftHand.Name = "LeftHand"
-    leftHand.Size = Vector3.new(0.3, 0.4, 0.3)
+    leftHand.Size = Vector3.new(0.15, 0.2, 0.15)
     leftHand.Color = CONFIG.armColor
     leftHand.Material = Enum.Material.SmoothPlastic
     leftHand.CanCollide = false
     leftHand.Anchored = true
     leftHand.CastShadow = false
     leftHand.Parent = viewmodel
+
+    -- Create left arm
+    local leftArm = Instance.new("Part")
+    leftArm.Name = "LeftArm"
+    leftArm.Size = Vector3.new(0.12, 0.5, 0.12)
+    leftArm.Color = CONFIG.sleeveColor
+    leftArm.Material = Enum.Material.Fabric
+    leftArm.CanCollide = false
+    leftArm.Anchored = true
+    leftArm.CastShadow = false
+    leftArm.Parent = viewmodel
 
     viewmodel.PrimaryPart = weaponHolder
 
@@ -592,41 +592,44 @@ function ViewmodelController:UpdateViewmodelParts(baseCFrame: CFrame)
     -- Get gun CFrame for positioning arms relative to weapon
     local gunCFrame = baseCFrame * (self.GunOffset or CFrame.new())
 
-    -- Default grip positions (relative to gun)
-    local rightGripPos = CFrame.new(0.1, -0.1, 0.2)
-    local leftGripPos = CFrame.new(-0.15, -0.05, -0.4)
+    -- Default grip positions (relative to viewmodel base, not gun)
+    -- Right hand at pistol grip area, left hand at foregrip
+    local rightGripPos = CFrame.new(0.08, -0.15, 0.1)
+    local leftGripPos = CFrame.new(-0.08, -0.12, -0.3)
 
     -- Use grip attachments from weapon if available
     if self.RightHandGrip then
         if self.RightHandGrip:IsA("Attachment") then
             rightGripPos = CFrame.new(self.RightHandGrip.Position)
-        else
-            -- It's a Part, use its position relative to primary part
+        elseif self.WeaponModel.PrimaryPart then
             local relPos = self.WeaponModel.PrimaryPart.CFrame:ToObjectSpace(self.RightHandGrip.CFrame)
-            rightGripPos = relPos
+            rightGripPos = CFrame.new(relPos.Position)
         end
     end
     if self.LeftHandGrip then
         if self.LeftHandGrip:IsA("Attachment") then
             leftGripPos = CFrame.new(self.LeftHandGrip.Position)
-        else
+        elseif self.WeaponModel.PrimaryPart then
             local relPos = self.WeaponModel.PrimaryPart.CFrame:ToObjectSpace(self.LeftHandGrip.CFrame)
-            leftGripPos = relPos
+            leftGripPos = CFrame.new(relPos.Position)
         end
     end
 
-    -- Apply arm positions relative to gun
+    -- Position hands at grip points
     if rightHand then
-        rightHand.CFrame = gunCFrame * rightGripPos * CFrame.Angles(math.rad(-80), 0, 0)
+        rightHand.CFrame = baseCFrame * rightGripPos
     end
+    -- Right arm extends down and back from hand
     if rightArm then
-        rightArm.CFrame = gunCFrame * rightGripPos * CFrame.new(0, 0.55, 0.1) * CFrame.Angles(math.rad(-80), 0, 0)
+        rightArm.CFrame = baseCFrame * rightGripPos * CFrame.new(0.05, -0.35, 0.15) * CFrame.Angles(math.rad(20), 0, math.rad(-10))
     end
+
     if leftHand then
-        leftHand.CFrame = gunCFrame * leftGripPos * CFrame.Angles(math.rad(-80), 0, 0)
+        leftHand.CFrame = baseCFrame * leftGripPos
     end
+    -- Left arm extends down and back from hand
     if leftArm then
-        leftArm.CFrame = gunCFrame * leftGripPos * CFrame.new(0, 0.55, 0.1) * CFrame.Angles(math.rad(-80), 0, 0)
+        leftArm.CFrame = baseCFrame * leftGripPos * CFrame.new(-0.05, -0.35, 0.1) * CFrame.Angles(math.rad(15), 0, math.rad(10))
     end
 end
 

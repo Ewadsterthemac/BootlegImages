@@ -309,22 +309,13 @@ function ViewmodelController:Equip(weaponConfig)
     -- Clean up existing viewmodel
     self:Unequip()
 
+    -- Always create viewmodel with arms
+    self.ViewmodelModel = self:CreateArmsModel()
+    self.ViewmodelModel.Parent = self.Camera
+
     -- Check if real weapon model exists
     local weaponsFolder = ReplicatedStorage:FindFirstChild("Weapons")
-    local hasRealModel = weaponsFolder and weaponsFolder:FindFirstChild(weaponConfig.id)
-
-    if hasRealModel then
-        -- For real weapon models, create simple container (no procedural arms)
-        self.ViewmodelModel = Instance.new("Model")
-        self.ViewmodelModel.Name = "Viewmodel"
-        self.ViewmodelModel.Parent = self.Camera
-        self.UseRealModel = true
-    else
-        -- For procedural weapons, create viewmodel with arms
-        self.ViewmodelModel = self:CreateArmsModel()
-        self.ViewmodelModel.Parent = self.Camera
-        self.UseRealModel = false
-    end
+    self.UseRealModel = weaponsFolder and weaponsFolder:FindFirstChild(weaponConfig.id) ~= nil
 
     -- Load or create weapon model
     self.WeaponModel, self.MuzzleAttachment = self:LoadWeaponModel(weaponConfig)
@@ -592,43 +583,50 @@ function ViewmodelController:UpdateViewmodelParts(baseCFrame: CFrame)
         end
     end
 
-    -- Skip arm positioning for real weapon models (they don't have procedural arms)
-    if self.UseRealModel then
-        return
-    end
-
-    -- Position arms (for procedural weapons only)
+    -- Position arms
     local rightArm = self.ViewmodelModel:FindFirstChild("RightArm")
     local rightHand = self.ViewmodelModel:FindFirstChild("RightHand")
     local leftArm = self.ViewmodelModel:FindFirstChild("LeftArm")
     local leftHand = self.ViewmodelModel:FindFirstChild("LeftHand")
 
-    -- Use grip attachments if available, otherwise default positions
-    local rightGripPos = CFrame.new(0.15, -0.12, 0.05)
-    local leftGripPos = CFrame.new(-0.12, -0.05, -0.35)
+    -- Get gun CFrame for positioning arms relative to weapon
+    local gunCFrame = baseCFrame * (self.GunOffset or CFrame.new())
 
+    -- Default grip positions (relative to gun)
+    local rightGripPos = CFrame.new(0.1, -0.1, 0.2)
+    local leftGripPos = CFrame.new(-0.15, -0.05, -0.4)
+
+    -- Use grip attachments from weapon if available
     if self.RightHandGrip then
-        rightGripPos = CFrame.new(self.RightHandGrip.Position)
+        if self.RightHandGrip:IsA("Attachment") then
+            rightGripPos = CFrame.new(self.RightHandGrip.Position)
+        else
+            -- It's a Part, use its position relative to primary part
+            local relPos = self.WeaponModel.PrimaryPart.CFrame:ToObjectSpace(self.RightHandGrip.CFrame)
+            rightGripPos = relPos
+        end
     end
     if self.LeftHandGrip then
-        leftGripPos = CFrame.new(self.LeftHandGrip.Position)
+        if self.LeftHandGrip:IsA("Attachment") then
+            leftGripPos = CFrame.new(self.LeftHandGrip.Position)
+        else
+            local relPos = self.WeaponModel.PrimaryPart.CFrame:ToObjectSpace(self.LeftHandGrip.CFrame)
+            leftGripPos = relPos
+        end
     end
 
-    local rightArmCF = rightGripPos * CFrame.Angles(math.rad(-10), 0, 0)
-    local leftArmCF = leftGripPos * CFrame.Angles(math.rad(-5), 0, 0)
-
-    -- Apply arm positions
+    -- Apply arm positions relative to gun
     if rightHand then
-        rightHand.CFrame = baseCFrame * rightArmCF
+        rightHand.CFrame = gunCFrame * rightGripPos * CFrame.Angles(math.rad(-80), 0, 0)
     end
     if rightArm then
-        rightArm.CFrame = baseCFrame * rightArmCF * CFrame.new(0, 0.5, 0)
+        rightArm.CFrame = gunCFrame * rightGripPos * CFrame.new(0, 0.55, 0.1) * CFrame.Angles(math.rad(-80), 0, 0)
     end
     if leftHand then
-        leftHand.CFrame = baseCFrame * leftArmCF
+        leftHand.CFrame = gunCFrame * leftGripPos * CFrame.Angles(math.rad(-80), 0, 0)
     end
     if leftArm then
-        leftArm.CFrame = baseCFrame * leftArmCF * CFrame.new(0, 0.5, 0)
+        leftArm.CFrame = gunCFrame * leftGripPos * CFrame.new(0, 0.55, 0.1) * CFrame.Angles(math.rad(-80), 0, 0)
     end
 end
 

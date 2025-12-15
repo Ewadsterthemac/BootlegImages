@@ -73,6 +73,7 @@ local Keybinds = {
     Reload = Enum.KeyCode.R,
     Equip1 = Enum.KeyCode.One,
     Equip2 = Enum.KeyCode.Two,
+    Equip3 = Enum.KeyCode.Three,
 }
 
 -- ===========================================
@@ -359,6 +360,11 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     -- Equip secondary (2)
     if input.KeyCode == Keybinds.Equip2 then
         equipWeapon("Glock17")
+    end
+
+    -- Equip MP5 (3)
+    if input.KeyCode == Keybinds.Equip3 then
+        equipWeapon("MP5")
     end
 end)
 

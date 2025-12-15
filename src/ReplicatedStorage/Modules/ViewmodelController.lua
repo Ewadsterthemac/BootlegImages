@@ -322,6 +322,15 @@ function ViewmodelController:Equip(weaponConfig)
     self.AdsOffset = weaponConfig.adsOffset or CFrame.new(0, -0.3, -0.7)
     self.CurrentOffset = self.BaseOffset
 
+    -- Gun model offset (for ACS-style models that need rotation)
+    self.GunOffset = weaponConfig.gunOffset or CFrame.new()
+
+    -- Arm offsets from config
+    self.RightArmOffset = weaponConfig.rightArmOffset
+    self.LeftArmOffset = weaponConfig.leftArmOffset
+    self.SprintRightArm = weaponConfig.sprintRightArm
+    self.SprintLeftArm = weaponConfig.sprintLeftArm
+
     -- Store hand grip positions from weapon
     self.RightHandGrip = self.WeaponModel:FindFirstChild("RightHand", true)
     self.LeftHandGrip = self.WeaponModel:FindFirstChild("LeftHand", true)
@@ -346,6 +355,11 @@ function ViewmodelController:Unequip()
     self.WeaponModel = nil
     self.MuzzleAttachment = nil
     self.WeaponPartOffsets = {}
+    self.GunOffset = nil
+    self.RightArmOffset = nil
+    self.LeftArmOffset = nil
+    self.SprintRightArm = nil
+    self.SprintLeftArm = nil
     self.RightHandGrip = nil
     self.LeftHandGrip = nil
     self.IsEquipped = false
@@ -530,12 +544,14 @@ function ViewmodelController:UpdateViewmodelParts(baseCFrame: CFrame)
 
     -- Update weapon model position (for real weapon models)
     if self.WeaponModel and self.WeaponModel.PrimaryPart then
-        self.WeaponModel.PrimaryPart.CFrame = baseCFrame
+        -- Apply gun offset (for ACS-style models that need rotation)
+        local gunCFrame = baseCFrame * (self.GunOffset or CFrame.new())
+        self.WeaponModel.PrimaryPart.CFrame = gunCFrame
 
         -- Update all parts using stored offsets
         for part, offset in pairs(self.WeaponPartOffsets) do
             if part and part.Parent then
-                part.CFrame = baseCFrame * offset
+                part.CFrame = gunCFrame * offset
             end
         end
     end
@@ -568,28 +584,45 @@ function ViewmodelController:UpdateViewmodelParts(baseCFrame: CFrame)
     local leftArm = self.ViewmodelModel:FindFirstChild("LeftArm")
     local leftHand = self.ViewmodelModel:FindFirstChild("LeftHand")
 
-    -- Use grip attachments if available, otherwise default positions
-    local rightGripPos = CFrame.new(0.15, -0.12, 0.05)
-    local leftGripPos = CFrame.new(-0.12, -0.05, -0.35)
+    -- Use config arm offsets if available (for ACS-style animations)
+    local rightArmCF, leftArmCF
 
-    if self.RightHandGrip then
-        rightGripPos = CFrame.new(self.RightHandGrip.Position)
-    end
-    if self.LeftHandGrip then
-        leftGripPos = CFrame.new(self.LeftHandGrip.Position)
+    if self.IsSprinting and self.SprintRightArm and self.SprintLeftArm then
+        -- Sprint pose
+        rightArmCF = self.SprintRightArm
+        leftArmCF = self.SprintLeftArm
+    elseif self.RightArmOffset and self.LeftArmOffset then
+        -- Config-defined arm positions
+        rightArmCF = self.RightArmOffset
+        leftArmCF = self.LeftArmOffset
+    else
+        -- Fallback: Use grip attachments if available, otherwise default positions
+        local rightGripPos = CFrame.new(0.15, -0.12, 0.05)
+        local leftGripPos = CFrame.new(-0.12, -0.05, -0.35)
+
+        if self.RightHandGrip then
+            rightGripPos = CFrame.new(self.RightHandGrip.Position)
+        end
+        if self.LeftHandGrip then
+            leftGripPos = CFrame.new(self.LeftHandGrip.Position)
+        end
+
+        rightArmCF = rightGripPos * CFrame.Angles(math.rad(-10), 0, 0)
+        leftArmCF = leftGripPos * CFrame.Angles(math.rad(-5), 0, 0)
     end
 
+    -- Apply arm positions
     if rightHand then
-        rightHand.CFrame = baseCFrame * rightGripPos * CFrame.Angles(math.rad(-10), 0, 0)
+        rightHand.CFrame = baseCFrame * rightArmCF
     end
     if rightArm then
-        rightArm.CFrame = baseCFrame * rightGripPos * CFrame.new(0, 0.5, 0.15) * CFrame.Angles(math.rad(-75), 0, 0)
+        rightArm.CFrame = baseCFrame * rightArmCF * CFrame.new(0, 0.5, 0)
     end
     if leftHand then
-        leftHand.CFrame = baseCFrame * leftGripPos * CFrame.Angles(math.rad(-5), 0, 0)
+        leftHand.CFrame = baseCFrame * leftArmCF
     end
     if leftArm then
-        leftArm.CFrame = baseCFrame * leftGripPos * CFrame.new(0, 0.5, 0.1) * CFrame.Angles(math.rad(-70), 0, 0)
+        leftArm.CFrame = baseCFrame * leftArmCF * CFrame.new(0, 0.5, 0)
     end
 end
 

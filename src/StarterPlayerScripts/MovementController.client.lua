@@ -2,35 +2,79 @@
     MovementController.client.lua
     Client-side movement handling
     Location: StarterPlayerScripts/MovementController
-
-    This script handles:
-    - Sprint/Walk toggling
-    - Crouch/Prone states
-    - Leaning
-    - Jump stamina cost
-    - Movement speed modifications
 ]]
+
+print("[MovementController] Script starting...")
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+print("[MovementController] Services loaded")
+
 local Player = Players.LocalPlayer
+print("[MovementController] Got LocalPlayer:", Player.Name)
+
 local Character = Player.Character or Player.CharacterAdded:Wait()
-local Humanoid = Character:WaitForChild("Humanoid")
-local RootPart = Character:WaitForChild("HumanoidRootPart")
+print("[MovementController] Got Character")
+
+local Humanoid = Character:WaitForChild("Humanoid", 10)
+if not Humanoid then
+    warn("[MovementController] ERROR: Could not find Humanoid!")
+    return
+end
+print("[MovementController] Got Humanoid")
+
+local RootPart = Character:WaitForChild("HumanoidRootPart", 10)
+if not RootPart then
+    warn("[MovementController] ERROR: Could not find HumanoidRootPart!")
+    return
+end
+print("[MovementController] Got RootPart")
 
 -- Wait for modules
-local Modules = ReplicatedStorage:WaitForChild("Modules")
-local Config = ReplicatedStorage:WaitForChild("Config")
+print("[MovementController] Loading modules...")
 
-local StaminaSystem = require(Modules:WaitForChild("StaminaSystem"))
-local GameConfig = require(Config:WaitForChild("GameConfig"))
+local Modules = ReplicatedStorage:WaitForChild("Modules", 10)
+if not Modules then
+    warn("[MovementController] ERROR: Could not find Modules folder!")
+    return
+end
+
+local Config = ReplicatedStorage:WaitForChild("Config", 10)
+if not Config then
+    warn("[MovementController] ERROR: Could not find Config folder!")
+    return
+end
+
+print("[MovementController] Found folders, requiring modules...")
+
+local success, StaminaSystem = pcall(function()
+    return require(Modules:WaitForChild("StaminaSystem"))
+end)
+if not success then
+    warn("[MovementController] ERROR loading StaminaSystem:", StaminaSystem)
+    return
+end
+print("[MovementController] StaminaSystem loaded")
+
+local success2, GameConfig = pcall(function()
+    return require(Config:WaitForChild("GameConfig"))
+end)
+if not success2 then
+    warn("[MovementController] ERROR loading GameConfig:", GameConfig)
+    return
+end
+print("[MovementController] GameConfig loaded")
 
 local MovementConfig = GameConfig.Player.Movement
 local JumpConfig = GameConfig.Player.Jump
 local StaminaConfig = GameConfig.Player.Stamina
+
+print("[MovementController] Config values loaded")
+print("[MovementController] WalkSpeed:", MovementConfig.WalkSpeed)
+print("[MovementController] SprintSpeed:", MovementConfig.SprintSpeed)
 
 -- ===========================================
 -- STATE
@@ -40,13 +84,15 @@ local MovementState = {
     IsCrouching = false,
     IsProne = false,
     IsADS = false,
-    LeanDirection = 0, -- -1 left, 0 none, 1 right
+    LeanDirection = 0,
     IsMovingBackward = false,
 }
 
 -- Initialize stamina system
+print("[MovementController] Creating StaminaSystem...")
 local Stamina = StaminaSystem.new(Player)
 Stamina:Start()
+print("[MovementController] StaminaSystem started")
 
 -- ===========================================
 -- KEYBINDS
@@ -65,9 +111,10 @@ local Keybinds = {
 -- ===========================================
 
 local function updateMovementSpeed()
+    if not Humanoid then return end
+
     local baseSpeed = MovementConfig.WalkSpeed
 
-    -- Apply state modifiers
     if MovementState.IsProne then
         baseSpeed = MovementConfig.ProneSpeed
     elseif MovementState.IsCrouching then
@@ -76,17 +123,14 @@ local function updateMovementSpeed()
         baseSpeed = MovementConfig.SprintSpeed
     end
 
-    -- Apply ADS modifier
     if MovementState.IsADS then
         baseSpeed = baseSpeed * MovementConfig.ADSSpeedMultiplier
     end
 
-    -- Apply backpedal modifier
     if MovementState.IsMovingBackward then
         baseSpeed = baseSpeed * MovementConfig.BackpedalMultiplier
     end
 
-    -- Apply to humanoid
     Humanoid.WalkSpeed = baseSpeed
 end
 
@@ -96,39 +140,41 @@ local function startSprint()
 
     MovementState.IsSprinting = true
     updateMovementSpeed()
+    print("[MovementController] Sprint ON")
 end
 
 local function stopSprint()
     MovementState.IsSprinting = false
     Stamina:StopSprint()
     updateMovementSpeed()
+    print("[MovementController] Sprint OFF")
 end
 
 local function toggleCrouch()
     if MovementState.IsProne then
-        -- Stand up from prone to crouch
         MovementState.IsProne = false
         MovementState.IsCrouching = true
     elseif MovementState.IsCrouching then
-        -- Stand up from crouch
         MovementState.IsCrouching = false
     else
-        -- Go to crouch
         MovementState.IsCrouching = true
         if MovementState.IsSprinting then
             stopSprint()
         end
     end
     updateMovementSpeed()
-    updateCrouchVisuals()
+
+    -- Update hip height for crouch visual
+    if Humanoid then
+        Humanoid.HipHeight = MovementState.IsCrouching and 0.5 or 2.0
+    end
+    print("[MovementController] Crouch:", MovementState.IsCrouching)
 end
 
 local function toggleProne()
     if MovementState.IsProne then
-        -- Get up from prone
         MovementState.IsProne = false
     else
-        -- Go prone
         MovementState.IsProne = true
         MovementState.IsCrouching = false
         if MovementState.IsSprinting then
@@ -136,72 +182,48 @@ local function toggleProne()
         end
     end
     updateMovementSpeed()
-    updateProneVisuals()
+
+    if Humanoid then
+        if MovementState.IsProne then
+            Humanoid.HipHeight = 0.1
+        elseif MovementState.IsCrouching then
+            Humanoid.HipHeight = 0.5
+        else
+            Humanoid.HipHeight = 2.0
+        end
+    end
+    print("[MovementController] Prone:", MovementState.IsProne)
 end
 
 local function setLean(direction: number)
     MovementState.LeanDirection = direction
-    -- Lean visuals handled by CameraController
-end
-
---[[
-    Updates crouch visuals (camera height, hitbox)
-]]
-function updateCrouchVisuals()
-    -- Adjust camera offset and character scale for crouch
-    -- This is a simplified version - full implementation would modify HumanoidDescription
-    local crouchScale = MovementState.IsCrouching and 0.6 or 1.0
-
-    -- You can adjust HipHeight for crouching effect
-    if Humanoid then
-        Humanoid.HipHeight = MovementState.IsCrouching and 0.5 or 2.0
-    end
-end
-
---[[
-    Updates prone visuals
-]]
-function updateProneVisuals()
-    -- Prone is more complex - would need custom animations
-    -- For now, use a very low hip height
-    if Humanoid then
-        Humanoid.HipHeight = MovementState.IsProne and 0.1 or
-                            (MovementState.IsCrouching and 0.5 or 2.0)
-    end
 end
 
 -- ===========================================
 -- INPUT CONNECTIONS
 -- ===========================================
 
+print("[MovementController] Connecting input handlers...")
+
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
 
     if input.KeyCode == Keybinds.Sprint then
         startSprint()
-
     elseif input.KeyCode == Keybinds.Crouch then
         toggleCrouch()
-
     elseif input.KeyCode == Keybinds.Prone then
         toggleProne()
-
     elseif input.KeyCode == Keybinds.LeanLeft then
         setLean(-1)
-
     elseif input.KeyCode == Keybinds.LeanRight then
         setLean(1)
-
     elseif input.KeyCode == Keybinds.Jump then
-        -- Check if we have stamina to jump
         if not Stamina:CanJump() then
-            -- Block the jump by setting JumpPower to 0 temporarily
             Humanoid.JumpPower = 0
         else
             Stamina:UseJumpStamina()
             Humanoid.JumpPower = JumpConfig.JumpPower
-
-            -- Crouch jump boost
             if MovementState.IsCrouching then
                 Humanoid.JumpPower = JumpConfig.JumpPower * JumpConfig.CrouchJumpBoost
             end
@@ -212,19 +234,15 @@ end)
 UserInputService.InputEnded:Connect(function(input, gameProcessed)
     if input.KeyCode == Keybinds.Sprint then
         stopSprint()
-
     elseif input.KeyCode == Keybinds.LeanLeft then
         if MovementState.LeanDirection == -1 then
             setLean(0)
         end
-
     elseif input.KeyCode == Keybinds.LeanRight then
         if MovementState.LeanDirection == 1 then
             setLean(0)
         end
-
     elseif input.KeyCode == Keybinds.Jump then
-        -- Restore jump power
         Humanoid.JumpPower = JumpConfig.JumpPower
     end
 end)
@@ -234,7 +252,8 @@ end)
 -- ===========================================
 
 RunService.RenderStepped:Connect(function(dt)
-    -- Detect if moving backward
+    if not Humanoid or not RootPart then return end
+
     local moveDirection = Humanoid.MoveDirection
     if moveDirection.Magnitude > 0.1 then
         local lookVector = RootPart.CFrame.LookVector
@@ -244,58 +263,19 @@ RunService.RenderStepped:Connect(function(dt)
         MovementState.IsMovingBackward = false
     end
 
-    -- Stop sprint if stamina depleted
     if MovementState.IsSprinting and not Stamina:CanSprint() then
         stopSprint()
     end
 
-    -- Update speed based on current state
     updateMovementSpeed()
 end)
 
 -- ===========================================
--- STAMINA UI UPDATES
+-- STAMINA EVENTS
 -- ===========================================
-
-Stamina.OnStaminaChanged.Event:Connect(function(data)
-    -- Fire to UI system
-    -- TODO: Connect to UI module
-    -- print(string.format("Stamina: %.0f/%.0f", data.current, data.max))
-end)
 
 Stamina.OnStaminaDepleted.Event:Connect(function()
-    -- Force stop sprinting
     stopSprint()
-    -- Play exhausted sound/effect
-    -- TODO: Add exhaustion effects
-end)
-
--- ===========================================
--- FALL DAMAGE
--- ===========================================
-
-local lastYPosition = RootPart.Position.Y
-local isFalling = false
-local fallStartY = 0
-
-Humanoid.StateChanged:Connect(function(oldState, newState)
-    if newState == Enum.HumanoidStateType.Freefall then
-        isFalling = true
-        fallStartY = RootPart.Position.Y
-    elseif oldState == Enum.HumanoidStateType.Freefall then
-        if isFalling then
-            local fallDistance = fallStartY - RootPart.Position.Y
-            if fallDistance > JumpConfig.FallDamageThreshold then
-                local damage = (fallDistance - JumpConfig.FallDamageThreshold) * JumpConfig.FallDamageMultiplier
-                -- Send fall damage to server
-                local Events = ReplicatedStorage:WaitForChild("Events")
-                local DamageEvent = Events:WaitForChild("DamageEvent")
-                -- Note: Self-damage for falls is handled server-side
-                -- We notify the server of the fall
-            end
-        end
-        isFalling = false
-    end
 end)
 
 -- ===========================================
@@ -307,21 +287,20 @@ Player.CharacterAdded:Connect(function(newCharacter)
     Humanoid = Character:WaitForChild("Humanoid")
     RootPart = Character:WaitForChild("HumanoidRootPart")
 
-    -- Reset states
     MovementState.IsSprinting = false
     MovementState.IsCrouching = false
     MovementState.IsProne = false
     MovementState.IsADS = false
     MovementState.LeanDirection = 0
 
-    -- Reset stamina
     Stamina:Reset()
-
     updateMovementSpeed()
+
+    print("[MovementController] Character respawned - Ready")
 end)
 
 -- ===========================================
--- PUBLIC API (for other scripts)
+-- PUBLIC API
 -- ===========================================
 
 local MovementController = {}
@@ -346,12 +325,9 @@ function MovementController.GetLeanDirection()
     return MovementState.LeanDirection
 end
 
--- Store in ReplicatedStorage for access by other scripts
-local controllerValue = Instance.new("ObjectValue")
-controllerValue.Name = "MovementController"
-controllerValue.Parent = Player:WaitForChild("PlayerScripts")
-
--- Make API accessible
 _G.MovementController = MovementController
 
-print("[MovementController] Client initialized")
+-- Set initial speed
+updateMovementSpeed()
+
+print("[MovementController] ✓ Fully initialized - Hold SHIFT to sprint!")

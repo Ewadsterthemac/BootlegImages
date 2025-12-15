@@ -540,8 +540,9 @@ function ViewmodelController:UpdateViewmodelParts(baseCFrame: CFrame)
         end
     end
 
-    -- Position weapon parts (for procedural weapons)
-    if self.WeaponModel then
+    -- Position weapon parts (for procedural weapons only - skip if using real model)
+    local isProceduralWeapon = next(self.WeaponPartOffsets) == nil
+    if self.WeaponModel and isProceduralWeapon then
         local body = self.WeaponModel:FindFirstChild("Body")
         local barrel = self.WeaponModel:FindFirstChild("Barrel")
         local grip = self.WeaponModel:FindFirstChild("Grip")

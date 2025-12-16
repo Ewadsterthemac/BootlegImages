@@ -103,8 +103,11 @@ function ViewmodelController:CreateArmsModel()
         for _, part in ipairs(arms:GetDescendants()) do
             if part:IsA("BasePart") then
                 part.CanCollide = false
+                part.CanQuery = false
+                part.CanTouch = false
                 part.Anchored = true
                 part.CastShadow = false
+                part.Massless = true
             end
         end
 

@@ -24,20 +24,20 @@ ViewmodelController.__index = ViewmodelController
 -- ===========================================
 local CONFIG = {
     -- Sway settings (camera rotation causes viewmodel to lag behind)
-    swayAmount = 0.08,       -- Reduced from 0.3
-    swaySpeed = 12,          -- Faster recovery
-    maxSway = 2,             -- Reduced max
+    swayAmount = 0,          -- DISABLED for testing
+    swaySpeed = 12,
+    maxSway = 0,
 
     -- Bob settings (movement causes up/down bounce)
-    bobSpeed = 6,            -- Slightly slower
-    bobAmount = 0.008,       -- Reduced from 0.02
-    sprintBobMultiplier = 1.3, -- Reduced from 1.8
+    bobSpeed = 6,
+    bobAmount = 0,           -- DISABLED for testing
+    sprintBobMultiplier = 1,
 
     -- ADS transition
     adsSpeed = 10,
 
     -- Breathing
-    breathingAmount = 0.001, -- Reduced from 0.003
+    breathingAmount = 0,     -- DISABLED for testing
     breathingSpeed = 1.2,
 
     -- Arm colors (customize or load from character)

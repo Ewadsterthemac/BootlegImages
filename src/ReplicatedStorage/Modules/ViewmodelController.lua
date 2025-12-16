@@ -427,11 +427,11 @@ function ViewmodelController:Update(dt: number)
     self:UpdateBreathing(dt)
     self:UpdateRecoilRecovery(dt)
 
-    local targetOffset = self.IsADS and self.AdsOffset or self.BaseOffset
-    self.CurrentOffset = self.CurrentOffset:Lerp(targetOffset, dt * CONFIG.adsSpeed)
+    -- Direct offset - no lerping (causes lag feel)
+    local offset = self.IsADS and self.AdsOffset or self.BaseOffset
 
-    local baseCFrame = self.Camera.CFrame * self.CurrentOffset
-    local finalCFrame = baseCFrame * self.SwayOffset * self.BobOffset * self.RecoilOffset * self.BreathingOffset
+    -- Apply directly to camera CFrame
+    local finalCFrame = self.Camera.CFrame * offset * self.SwayOffset * self.BobOffset * self.RecoilOffset * self.BreathingOffset
 
     self:UpdateViewmodelParts(finalCFrame)
 end

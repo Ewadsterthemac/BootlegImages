@@ -233,6 +233,9 @@ local cameraAngleX = 0 -- Horizontal rotation
 local cameraAngleY = 0 -- Vertical rotation (clamped)
 
 local function updateCamera(dt: number)
+    -- TEMP: Disabled for debugging third person view
+    return
+
     -- Get mouse input
     local mouseDelta = UserInputService:GetMouseDelta()
 

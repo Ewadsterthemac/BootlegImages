@@ -73,19 +73,17 @@ local MovementController = nil
 -- ===========================================
 
 local function initializeCamera()
-    -- Set camera to scriptable for full control
-    Camera.CameraType = Enum.CameraType.Scriptable
-
-    -- Lock mouse
-    UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+    -- TEMP: Disabled for debugging - allows third person view
+    -- Camera.CameraType = Enum.CameraType.Scriptable
+    -- UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
 
     -- Set initial FOV
     Camera.FieldOfView = CameraConfig.DefaultFOV
 
-    -- Hide character in first person
-    if CameraState.IsFirstPerson then
-        setCharacterTransparency(1)
-    end
+    -- TEMP: Don't hide character for debugging
+    -- if CameraState.IsFirstPerson then
+    --     setCharacterTransparency(1)
+    -- end
 end
 
 --[[

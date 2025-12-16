@@ -89,46 +89,43 @@ function ViewmodelController.new()
 end
 
 --[[
-    Creates the viewmodel arms
+    Creates the viewmodel arms by cloning from ReplicatedStorage
     @return Model - The viewmodel model
 ]]
 function ViewmodelController:CreateArmsModel()
+    local armsTemplate = ReplicatedStorage:FindFirstChild("Arms")
+
+    if armsTemplate then
+        local arms = armsTemplate:Clone()
+        arms.Name = "Viewmodel"
+
+        -- Make sure all parts are set up correctly for viewmodel
+        for _, part in ipairs(arms:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+                part.Anchored = true
+                part.CastShadow = false
+            end
+        end
+
+        print("[Viewmodel] Loaded Arms model from ReplicatedStorage")
+        return arms
+    end
+
+    -- Fallback: create empty model if no Arms found
+    warn("[Viewmodel] No Arms model found in ReplicatedStorage - create one!")
     local viewmodel = Instance.new("Model")
     viewmodel.Name = "Viewmodel"
 
-    -- Weapon holder (where gun attaches)
-    local weaponHolder = Instance.new("Part")
-    weaponHolder.Name = "WeaponHolder"
-    weaponHolder.Size = Vector3.new(0.1, 0.1, 0.1)
-    weaponHolder.Transparency = 1
-    weaponHolder.CanCollide = false
-    weaponHolder.Anchored = true
-    weaponHolder.Parent = viewmodel
+    local holder = Instance.new("Part")
+    holder.Name = "HumanoidRootPart"
+    holder.Size = Vector3.new(0.1, 0.1, 0.1)
+    holder.Transparency = 1
+    holder.CanCollide = false
+    holder.Anchored = true
+    holder.Parent = viewmodel
 
-    -- Right hand only (no forearm - cleaner look)
-    local rightHand = Instance.new("Part")
-    rightHand.Name = "RightHand"
-    rightHand.Size = Vector3.new(0.18, 0.25, 0.35) -- Elongated to look like gripping hand
-    rightHand.Color = CONFIG.armColor
-    rightHand.Material = Enum.Material.SmoothPlastic
-    rightHand.CanCollide = false
-    rightHand.Anchored = true
-    rightHand.CastShadow = false
-    rightHand.Parent = viewmodel
-
-    -- Left hand only
-    local leftHand = Instance.new("Part")
-    leftHand.Name = "LeftHand"
-    leftHand.Size = Vector3.new(0.18, 0.25, 0.35)
-    leftHand.Color = CONFIG.armColor
-    leftHand.Material = Enum.Material.SmoothPlastic
-    leftHand.CanCollide = false
-    leftHand.Anchored = true
-    leftHand.CastShadow = false
-    leftHand.Parent = viewmodel
-
-    viewmodel.PrimaryPart = weaponHolder
-
+    viewmodel.PrimaryPart = holder
     return viewmodel
 end
 
@@ -520,83 +517,28 @@ end
 function ViewmodelController:UpdateViewmodelParts(baseCFrame: CFrame)
     if not self.ViewmodelModel then return end
 
-    local holder = self.ViewmodelModel:FindFirstChild("WeaponHolder")
-    if holder then
-        holder.CFrame = baseCFrame
+    -- Position arms model using SetPrimaryPartCFrame (moves entire model)
+    if self.ViewmodelModel.PrimaryPart then
+        self.ViewmodelModel:SetPrimaryPartCFrame(baseCFrame)
     end
 
-    -- Update weapon model position (for real weapon models)
+    -- Update weapon model position
     if self.WeaponModel and self.WeaponModel.PrimaryPart then
-        -- Apply gun offset (for ACS-style models that need rotation)
         local gunCFrame = baseCFrame * (self.GunOffset or CFrame.new())
-        self.WeaponModel.PrimaryPart.CFrame = gunCFrame
 
-        -- Update all parts using stored offsets
-        for part, offset in pairs(self.WeaponPartOffsets) do
-            if part and part.Parent then
-                part.CFrame = gunCFrame * offset
+        -- Use SetPrimaryPartCFrame if weapon has proper welds, otherwise manual update
+        if self.WeaponModel.PrimaryPart:FindFirstChildOfClass("Weld") or
+           self.WeaponModel.PrimaryPart:FindFirstChildOfClass("Motor6D") then
+            self.WeaponModel:SetPrimaryPartCFrame(gunCFrame)
+        else
+            -- Manual update for anchored parts
+            self.WeaponModel.PrimaryPart.CFrame = gunCFrame
+            for part, offset in pairs(self.WeaponPartOffsets) do
+                if part and part.Parent then
+                    part.CFrame = gunCFrame * offset
+                end
             end
         end
-    end
-
-    -- Position weapon parts (for procedural weapons only - skip if using real model)
-    local isProceduralWeapon = next(self.WeaponPartOffsets) == nil
-    if self.WeaponModel and isProceduralWeapon then
-        local body = self.WeaponModel:FindFirstChild("Body")
-        local barrel = self.WeaponModel:FindFirstChild("Barrel")
-        local grip = self.WeaponModel:FindFirstChild("Grip")
-        local mag = self.WeaponModel:FindFirstChild("Magazine")
-
-        if body then
-            body.CFrame = baseCFrame * CFrame.new(0, 0, -0.15)
-        end
-        if barrel then
-            barrel.CFrame = baseCFrame * CFrame.new(0, 0.02, -0.6)
-        end
-        if grip then
-            grip.CFrame = baseCFrame * CFrame.new(0, -0.22, 0.08)
-        end
-        if mag then
-            mag.CFrame = baseCFrame * CFrame.new(0, -0.28, -0.05)
-        end
-    end
-
-    -- Position hands at grip points
-    local rightHand = self.ViewmodelModel:FindFirstChild("RightHand")
-    local leftHand = self.ViewmodelModel:FindFirstChild("LeftHand")
-
-    -- Right hand: at pistol grip area
-    local rightHandCF = baseCFrame * CFrame.new(0.12, -0.18, 0.05)
-    -- Left hand: at foregrip area (forward)
-    local leftHandCF = baseCFrame * CFrame.new(-0.08, -0.15, -0.3)
-
-    -- Override with grip attachments from weapon if available
-    if self.RightHandGrip then
-        if self.RightHandGrip:IsA("Attachment") then
-            rightHandCF = baseCFrame * CFrame.new(self.RightHandGrip.Position)
-        elseif self.RightHandGrip:IsA("BasePart") and self.WeaponModel.PrimaryPart then
-            local offset = self.WeaponModel.PrimaryPart.CFrame:ToObjectSpace(self.RightHandGrip.CFrame)
-            rightHandCF = baseCFrame * CFrame.new(offset.Position)
-        end
-    end
-    if self.LeftHandGrip then
-        if self.LeftHandGrip:IsA("Attachment") then
-            leftHandCF = baseCFrame * CFrame.new(self.LeftHandGrip.Position)
-        elseif self.LeftHandGrip:IsA("BasePart") and self.WeaponModel.PrimaryPart then
-            local offset = self.WeaponModel.PrimaryPart.CFrame:ToObjectSpace(self.LeftHandGrip.CFrame)
-            leftHandCF = baseCFrame * CFrame.new(offset.Position)
-        end
-    end
-
-    -- Position hands with grip rotation
-    if rightHand then
-        -- Rotated to look like hand wrapping around grip
-        rightHand.CFrame = rightHandCF * CFrame.Angles(math.rad(-70), 0, math.rad(-10))
-    end
-
-    if leftHand then
-        -- Rotated to look like hand on foregrip
-        leftHand.CFrame = leftHandCF * CFrame.Angles(math.rad(-75), 0, math.rad(10))
     end
 end
 
